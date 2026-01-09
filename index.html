@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Calculadora Financeira WebAssembly</title>
+    <style>
+        /* Estilo inspirado na HP 12C */
+        body { font-family: 'Arial', sans-serif; background-color: #e0e0e0; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        
+        .hp12c-body {
+            background-color: #333333; /* O preto clássico */
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 10px 10px 20px rgba(0,0,0,0.5);
+            width: 350px;
+            border: 2px solid #555;
+        }
+
+        .logo {
+            color: #d4af37; /* O dourado da HP */
+            font-weight: bold;
+            font-style: italic;
+            margin-bottom: 15px;
+            font-size: 18px;
+            text-align: left;
+            padding-left: 10px;
+        }
+
+        .visor {
+            background-color: #aebfa3; /* Cor de cristal líquido antigo */
+            color: #000;
+            font-family: 'Courier New', monospace;
+            font-size: 32px;
+            padding: 10px;
+            text-align: right;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            height: 40px;
+            border: 3px solid #666;
+        }
+
+        .inputs-area {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        input {
+            width: 80%;
+            padding: 10px;
+            background: #fff;
+            border: none;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        label {
+            color: #d4af37;
+            font-size: 12px;
+            display: block;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            background: #d4af37; /* Botão Dourado (f) */
+            color: #000;
+            font-weight: bold;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            box-shadow: 0 4px #997f26;
+        }
+
+        button:active {
+            box-shadow: 0 2px #997f26;
+            transform: translateY(2px);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="hp12c-body">
+        <div class="logo">HP 12C <span style="font-size: 12px; color: #fff;">Web Edition</span></div>
+        
+        <div id="visor" class="visor">0.00</div>
+
+        <div class="inputs-area">
+            <div>
+                <label>Valor (PV)</label>
+                <input type="number" id="inputPV" placeholder="1000">
+            </div>
+            <div>
+                <label>Meses (n)</label>
+                <input type="number" id="inputN" placeholder="12">
+            </div>
+            <div>
+                <label>Taxa (i%)</label>
+                <input type="number" id="inputI" placeholder="10">
+            </div>
+        </div>
+
+        <button onclick="calcularFV()">Calcular FV (Valor Futuro)</button>
+    </div>
+
+    <script>
+        let wasmExports = null;
+
+        // Carrega o módulo C
+        fetch('math.wasm')
+            .then(response => response.arrayBuffer())
+            .then(bytes => WebAssembly.instantiate(bytes))
+            .then(results => {
+                wasmExports = results.instance.exports;
+            });
+
+        function calcularFV() {
+            if (!wasmExports) return;
+
+            const pv = parseFloat(document.getElementById('inputPV').value);
+            const n = parseInt(document.getElementById('inputN').value);
+            const i = parseFloat(document.getElementById('inputI').value);
+
+            if (isNaN(pv) || isNaN(n) || isNaN(i)) {
+                document.getElementById('visor').innerText = "Erro";
+                return;
+            }
+
+            // Chama a função C de Juros Compostos
+            const resultado = wasmExports.calcular_juros_compostos(pv, i, n);
+
+            // Formata para dinheiro (R$)
+            document.getElementById('visor').innerText = resultado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        }
+    </script>
+</body>
+</html>
